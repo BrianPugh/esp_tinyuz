@@ -1,0 +1,69 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-tests:
+    name: Host tests (linux target, ${{ matrix.config }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [default, no_literal_line]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build and run the Unity test app on the host
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.0.2
+          target: linux
+          path: test_apps
+          command: >-
+            idf.py --preview
+            -DSDKCONFIG_DEFAULTS="sdkconfig.defaults${{ matrix.config != 'default' && format(';sdkconfig.ci.{0}', matrix.config) || '' }}"
+            set-target linux build
+            && ./build/test_esp_tinyuz.elf
+
+  build:
+    name: Build (${{ matrix.idf }}, ${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        idf: [v6.0.2]
+        target: [esp32, esp32s3, esp32c3, esp32c6]
+        include:
+          # Oldest ESP-IDF that idf_component.yml claims.
+          - idf: release-v5.0
+            target: esp32
+          - idf: release-v5.4
+            target: esp32s3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build example
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: ${{ matrix.idf }}
+          target: ${{ matrix.target }}
+          path: examples/decode_blob
+
+      - name: Build test app
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: ${{ matrix.idf }}
+          target: ${{ matrix.target }}
+          path: test_apps

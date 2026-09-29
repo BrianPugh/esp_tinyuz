@@ -16,6 +16,9 @@ dependencies:
 files:
   exclude:
     - ".github/**/*"
+    - ".gitmodules"
+    - "tinyuz/.git"
+    - "tinyuz/.gitignore"
     - "test_apps/**/*"
     - "tools/**/*"
     - "tinyuz/compress/**/*"

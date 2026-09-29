@@ -1,0 +1,27 @@
+name: Upload to the ESP Component Registry
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC token for the registry's trusted uploaders
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Upload component
+        uses: espressif/upload-components-ci-action@v2
+        with:
+          components: "esp_tinyuz: ."
+          namespace: "brianpugh"
+          # Only needed until the repo is a trusted uploader (OIDC); leave the secret unset afterwards.
+          api_token: ${{ secrets.ESP_IDF_COMPONENT_API_TOKEN }}
+          dry_run: ${{ github.event_name == 'workflow_dispatch' }}
