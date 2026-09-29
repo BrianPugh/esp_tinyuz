@@ -7,7 +7,7 @@ The component builds upstream's `decompress/` sources unmodified from a git subm
 ## Install
 
 ```sh
-idf.py add-dependency "brianpugh/esp_tinyuz^1.1.1"
+idf.py add-dependency "brianpugh/esp_tinyuz^1.0.0"
 ```
 
 Then add `esp_tinyuz` to your component's `REQUIRES`/`PRIV_REQUIRES` and `#include "tuz_dec.h"`.
@@ -87,17 +87,14 @@ The component compiles `tuz_dec.c` with `NDEBUG`: upstream asserts that the dict
 
 ## Versioning
 
-The component version tracks the upstream tinyuz release it packages (`1.1.1` = tinyuz v1.1.1). Packaging-only changes get an ESP Component Registry revision suffix (`1.1.1~1`, `1.1.1~2`, ...).
-
-Releases use [bump-my-version](https://github.com/callowayproject/bump-my-version), which rewrites `idf_component.yml` and the install line above, commits and tags:
+The component has its own semantic version, independent of tinyuz's; the tinyuz release it bundles is stated at the top of this README. Releases use [bump-my-version](https://github.com/callowayproject/bump-my-version), which rewrites `idf_component.yml` and the install line above, commits and tags `v<version>`:
 
 ```sh
-uvx bump-my-version bump patch      # after moving the tinyuz submodule to a new release (also minor/major)
-uvx bump-my-version bump revision   # packaging-only change: 1.1.1 -> 1.1.1~1
+uvx bump-my-version bump patch   # or minor/major
 git push --follow-tags
 ```
 
-git tags can't contain `~`, so a revision is tagged `v1.1.1-r1`. Pushing a `v*` tag runs the upload workflow, which publishes the version from `idf_component.yml`.
+Pushing a `v*` tag runs the upload workflow, which publishes the version from `idf_component.yml`.
 
 ## Development
 
