@@ -89,6 +89,16 @@ The component compiles `tuz_dec.c` with `NDEBUG`: upstream asserts that the dict
 
 The component version tracks the upstream tinyuz release it packages (`1.1.1` = tinyuz v1.1.1). Packaging-only changes get an ESP Component Registry revision suffix (`1.1.1~1`, `1.1.1~2`, ...).
 
+Releases use [bump-my-version](https://github.com/callowayproject/bump-my-version), which rewrites `idf_component.yml` and the install line above, commits and tags:
+
+```sh
+uvx bump-my-version bump patch      # after moving the tinyuz submodule to a new release (also minor/major)
+uvx bump-my-version bump revision   # packaging-only change: 1.1.1 -> 1.1.1~1
+git push --follow-tags
+```
+
+git tags can't contain `~`, so a revision is tagged `v1.1.1-r1`. Pushing a `v*` tag runs the upload workflow, which publishes the version from `idf_component.yml`.
+
 ## Development
 
 ```sh
