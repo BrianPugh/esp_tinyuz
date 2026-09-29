@@ -1,0 +1,31 @@
+version: "1.1.1"
+description: tinyuz decoder, a tiny-memory LZ77 decompressor with streaming input and bounded memory.
+url: https://github.com/BrianPugh/esp_tinyuz
+repository: https://github.com/BrianPugh/esp_tinyuz.git
+issues: https://github.com/BrianPugh/esp_tinyuz/issues
+license: MIT
+maintainers:
+  - Brian Pugh <bnp117@gmail.com>
+tags:
+  - compression
+  - decompression
+  - tinyuz
+  - lz77
+dependencies:
+  idf: ">=5.0"
+files:
+  exclude:
+    - ".github/**/*"
+    - "test_apps/**/*"
+    - "tools/**/*"
+    - "tinyuz/compress/**/*"
+    - "tinyuz/builds/**/*"
+    - "tinyuz/*.cpp"
+    - "tinyuz/test_others.h"
+    - "tinyuz/Makefile"
+    - "tinyuz/README_cn.md"
+    - "**/build/**/*"
+    - "**/managed_components/**/*"
+    - "**/sdkconfig"
+    - "**/sdkconfig.old"
+    - "**/dependencies.lock"

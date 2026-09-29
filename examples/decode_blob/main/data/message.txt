@@ -1,0 +1,20 @@
+esp_tinyuz decode_blob example
+==============================
+
+This text was compressed on the host with the upstream tinyuz encoder
+(dictionary size 4096 bytes) and embedded in the firmware. At boot the
+example reads the compressed blob through a read callback, the same way a
+network or BLE transport would feed it, and decodes it in small chunks.
+
+The decoder only ever holds the dictionary (at most 4096 bytes here, and
+less when the input is smaller than the dictionary), a small code cache and
+one output chunk. Nothing else scales with the size of the data.
+
+tinyuz is written by housisong and released under the MIT license:
+https://github.com/sisong/tinyuz
+
+Repetition helps the dictionary coder, so here is some repetition:
+the quick brown fox jumps over the lazy dog.
+the quick brown fox jumps over the lazy dog.
+the quick brown fox jumps over the lazy dog.
+the quick brown fox jumps over the lazy dog.

@@ -1,0 +1,3 @@
+[submodule "tinyuz"]
+	path = tinyuz
+	url = https://github.com/sisong/tinyuz.git

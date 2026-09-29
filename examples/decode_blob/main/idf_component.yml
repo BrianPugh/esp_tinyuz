@@ -1,0 +1,4 @@
+dependencies:
+  brianpugh/esp_tinyuz:
+    version: "*"
+    override_path: "../../../"

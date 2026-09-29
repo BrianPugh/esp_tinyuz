@@ -1,0 +1,32 @@
+menu "tinyuz decoder"
+
+    config TINYUZ_LITERAL_LINE
+        bool "Decode literal-line control codes (tuz_isNeedLiteralLine)"
+        default y
+        help
+            Literal lines store runs of incompressible bytes more compactly.
+            The encoder emits them with `tinyuz -c` or hdiffpatch's
+            TuzConfig(literal_line=True).
+
+            Disabling this saves about 54 bytes of code, but the decoder can
+            then only read streams encoded without literal lines
+            (`tinyuz -ci`, or TuzConfig(literal_line=False), hdiffpatch's
+            default). A literal-line code in the input is then reported as an
+            error.
+
+            This changes the layout of tuz_TStream, so it is exported to every
+            component that includes tuz_dec.h.
+
+    config TINYUZ_MEM_SAFE_CHECK
+        bool "Validate compressed input (_IS_RUN_MEM_SAFE_CHECK)"
+        default y
+        help
+            Check dictionary positions, lengths and the input bound while
+            decoding, so corrupt or malicious input returns an error instead
+            of reading or writing out of bounds.
+
+            Keep this enabled whenever the compressed data comes from a
+            network, radio or any other untrusted source. Disabling it saves
+            a little code and time and is only safe for trusted input.
+
+endmenu
