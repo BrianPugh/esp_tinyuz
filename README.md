@@ -2,7 +2,7 @@
 
 ESP-IDF component for the decoder of [tinyuz](https://github.com/sisong/tinyuz), a tiny LZ77-family decompressor by housisong. It decodes from a read callback into caller-sized output chunks, so RAM use is fixed by the stream's dictionary size plus a cache you choose, however large the data is.
 
-The component builds upstream's `decompress/` sources unmodified from a git submodule pinned at tinyuz **v1.1.1** (`1d74ffa`) and exposes upstream's own API (`tuz_dec.h`). The encoder is C++ and runs on the host; it isn't included.
+The component builds upstream's `decompress/` sources unmodified from a git submodule of [sisong/tinyuz](https://github.com/sisong/tinyuz) and exposes upstream's own API (`tuz_dec.h`). The encoder is C++ and runs on the host; it isn't included.
 
 ## Install
 
@@ -84,17 +84,6 @@ Not exposed, on purpose:
 
 The component compiles `tuz_dec.c` with `NDEBUG`: upstream asserts that the dictionary size read from the stream is non-zero, which would abort on a corrupt header when ESP-IDF assertions are enabled, instead of returning the documented error (0).
 
-## Versioning
-
-The component has its own semantic version, independent of tinyuz's; the tinyuz release it bundles is stated at the top of this README. Releases use [bump-my-version](https://github.com/callowayproject/bump-my-version), which rewrites `idf_component.yml` and the install line above, commits and tags `v<version>`:
-
-```sh
-uvx bump-my-version bump patch   # or minor/major
-git push --follow-tags
-```
-
-Pushing a `v*` tag runs the upload workflow, which publishes the version from `idf_component.yml`.
-
 ## Development
 
 ```sh
@@ -105,6 +94,17 @@ idf.py set-target esp32s3 build flash monitor                             # on a
 ```
 
 The test vectors in `test_apps/main/test_vectors.c` come from `tools/gen_vectors.py` (text, structured, sparse and random inputs compressed by the upstream tinyuz CLI at 256 B and 4 KB dictionaries, with and without literal lines); see the script's docstring to regenerate them.
+
+### Versioning
+
+The component has its own semantic version, independent of tinyuz's. Releases use [bump-my-version](https://github.com/callowayproject/bump-my-version), which rewrites `idf_component.yml` and the install line above, commits and tags `v<version>`:
+
+```sh
+uvx bump-my-version bump patch   # or minor/major
+git push --follow-tags
+```
+
+Pushing a `v*` tag runs the upload workflow, which publishes the version from `idf_component.yml`.
 
 ## License
 
