@@ -17,6 +17,7 @@ files:
   exclude:
     - ".github/**/*"
     - ".gitmodules"
+    - ".bumpversion.toml"
     - "tinyuz/.git"
     - "tinyuz/.gitignore"
     - "test_apps/**/*"
