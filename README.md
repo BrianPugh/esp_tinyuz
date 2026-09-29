@@ -66,7 +66,7 @@ See [`examples/decode_blob`](examples/decode_blob) for a complete program.
 
 ## Compressing
 
-On the host, use the upstream `tinyuz` CLI (`tinyuz -c-4k in out`, or `-ci-4k` without literal lines) or [hdiffpatch](https://pypi.org/project/hdiffpatch/)'s `TuzConfig(dict_size=..., literal_line=...)`, which compresses the tinyuz payload of HPatchLite diffs. Both produce the stream format this component decodes.
+On the host, use the upstream [`tinyuz`](https://github.com/sisong/tinyuz) CLI: `tinyuz -c-4k in out` compresses with a 4 KB dictionary, and `-ci-4k` does the same without literal lines.
 
 ## Configuration
 
@@ -74,14 +74,13 @@ On the host, use the upstream `tinyuz` CLI (`tinyuz -c-4k in out`, or `-ci-4k` w
 
 | Option | Upstream macro | Default | Effect |
 | --- | --- | --- | --- |
-| `CONFIG_TINYUZ_LITERAL_LINE` | `tuz_isNeedLiteralLine` | `y` | Decode literal-line control codes. Disabling saves ~54 bytes of code but only decodes streams encoded without literal lines (`tinyuz -ci`, `TuzConfig(literal_line=False)`). Changes `tuz_TStream`'s layout, so it's a public compile definition. |
+| `CONFIG_TINYUZ_LITERAL_LINE` | `tuz_isNeedLiteralLine` | `y` | Decode literal-line control codes. Disabling saves ~54 bytes of code but only decodes streams encoded without literal lines (`tinyuz -ci`). Changes `tuz_TStream`'s layout, so it's a public compile definition. |
 | `CONFIG_TINYUZ_MEM_SAFE_CHECK` | `_IS_RUN_MEM_SAFE_CHECK` | `y` | Validate the input while decoding, so corrupt or malicious data returns an error instead of accessing memory out of bounds. Keep it on for anything received over a network or radio. |
 
 Not exposed, on purpose:
 
 - `tuz_kMaxOfDictSize` sets how many bytes the stream header uses for the dictionary size, so changing it breaks compatibility with the stock encoders (which write 4 bytes). Limit the dictionary at runtime instead, as in the example above.
 - `tuz_length_t`/`tuz_size_t` stay `unsigned int`; narrower types cap the dictionary and match lengths at encode time.
-- `_IS_USED_SHARE_hpatch_lite_types` needs HPatchLite's headers from the consumer and only saves ~52 bytes.
 
 The component compiles `tuz_dec.c` with `NDEBUG`: upstream asserts that the dictionary size read from the stream is non-zero, which would abort on a corrupt header when ESP-IDF assertions are enabled, instead of returning the documented error (0).
 
@@ -105,7 +104,7 @@ idf.py --preview set-target linux build && ./build/test_esp_tinyuz.elf   # host 
 idf.py set-target esp32s3 build flash monitor                             # on a board
 ```
 
-The test vectors in `test_apps/main/test_vectors.c` come from `tools/gen_vectors.py` (the upstream CLI for raw streams, hdiffpatch 2.4.0 for HPatchLite tinyuz payloads); see the script's docstring to regenerate them.
+The test vectors in `test_apps/main/test_vectors.c` come from `tools/gen_vectors.py` (text, structured, sparse and random inputs compressed by the upstream tinyuz CLI at 256 B and 4 KB dictionaries, with and without literal lines); see the script's docstring to regenerate them.
 
 ## License
 

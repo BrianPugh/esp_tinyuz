@@ -1,26 +1,14 @@
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["cyclopts>=3", "hdiffpatch==2.4.0"]
+# dependencies = ["cyclopts>=3"]
 # ///
 """Generate the tinyuz test vectors and the example's embedded blob.
 
-Two encoders produce the vectors:
+Every stream is made by the upstream ``tinyuz`` CLI built from the pinned
+submodule commit (v1.1.1, 1d74ffa; build it as upstream's README describes) and
+round-tripped through ``tinyuz -d`` before it is written.
 
-* The upstream ``tinyuz`` CLI, built from the pinned submodule commit, for raw
-  tinyuz streams (``hdiffpatch`` has no raw tinyuz compress entry point).
-* ``hdiffpatch`` 2.4.0 ``diff_lite(..., compression=TuzConfig(...))`` for the
-  tinyuz streams inside HPatchLite diffs, which is exactly what devices receive.
-  The expected output is the body of the same diff made with ``compression="none"``.
-
-Every raw stream is round-tripped through ``tinyuz -d`` before it is written.
-
-Build the CLI once (HDiffPatch must be a sibling of the tinyuz checkout)::
-
-    git clone https://github.com/sisong/tinyuz && git -C tinyuz checkout 1d74ffa
-    git clone https://github.com/sisong/HDiffPatch && git -C HDiffPatch checkout v5.1.3
-    make -C tinyuz MT=0
-
-Then run from the repo root::
+Run from the repo root::
 
     uv run tools/gen_vectors.py --tinyuz /path/to/tinyuz/tinyuz
 """
@@ -32,15 +20,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import cyclopts
-import hdiffpatch
 
 REPO = Path(__file__).resolve().parent.parent
 TEST_VECTORS_C = REPO / "test_apps" / "main" / "test_vectors.c"
 EXAMPLE_DATA = REPO / "examples" / "decode_blob" / "main" / "data"
 
 WORDS = (
-    "firmware delta update patch device flash partition stream decoder window "
-    "dictionary cache literal match length offset byte image boot verify hash "
+    "compress decode stream window dictionary cache literal match length offset "
+    "byte block buffer input output chunk verify checksum small tiny fast "
     "the a of to and in is for on with over radio packet bounded memory"
 ).split()
 
@@ -66,8 +53,8 @@ def make_text(rng: random.Random, n: int) -> bytes:
     return "".join(out).encode()[:n]
 
 
-def make_firmware(rng: random.Random, n: int) -> bytes:
-    """Firmware-like bytes: repeated instruction-ish patterns, tables and noise."""
+def make_structured(rng: random.Random, n: int) -> bytes:
+    """Binary with repeated short patterns, zero runs and noise."""
     patterns = [rng.randbytes(rng.randint(4, 24)) for _ in range(32)]
     out = bytearray()
     while len(out) < n:
@@ -81,17 +68,13 @@ def make_firmware(rng: random.Random, n: int) -> bytes:
     return bytes(out[:n])
 
 
-def mutate(rng: random.Random, data: bytes) -> bytes:
-    out = bytearray(data)
-    for _ in range(40):
-        pos = rng.randrange(len(out))
-        r = rng.random()
-        if r < 0.5:
-            out[pos : pos + 4] = rng.randbytes(4)
-        elif r < 0.75:
-            out[pos:pos] = rng.randbytes(rng.randint(1, 64))
-        else:
-            del out[pos : pos + rng.randint(1, 64)]
+def make_sparse(rng: random.Random, n: int) -> bytes:
+    """Mostly-zero binary with sparse short runs of nonzero bytes."""
+    out = bytearray(n)
+    for _ in range(n // 256):
+        pos = rng.randrange(n)
+        run = rng.randbytes(rng.randint(1, 8))
+        out[pos : pos + len(run)] = run[: n - pos]
     return bytes(out)
 
 
@@ -105,15 +88,6 @@ def tinyuz_compress(cli: Path, data: bytes, dict_size: int, literal_line: bool) 
         if back.read_bytes() != data:
             raise RuntimeError("tinyuz CLI round trip mismatch")
         return dst.read_bytes()
-
-
-def lite_body(diff: bytes) -> tuple[int, bytes]:
-    """Split an HPatchLite diff into (compress_type, payload after the header)."""
-    if diff[:2] != b"hI" or diff[3] >> 6 != 1:
-        raise ValueError("not an HPatchLite v1 diff")
-    new_size_len = diff[3] & 7
-    uncompress_size_len = (diff[3] >> 3) & 7
-    return diff[2], diff[4 + new_size_len + uncompress_size_len :]
 
 
 def c_bytes(data: bytes) -> str:
@@ -156,13 +130,12 @@ def generate(tinyuz: Path, seed: int = 0x7475):
         RNG seed for the synthetic inputs.
     """
     rng = random.Random(seed)
-    old_fw = make_firmware(rng, 12 * 1024)
-    new_fw = mutate(rng, old_fw)
     inputs: list[tuple[str, bytes]] = [
         ("empty", b""),
         ("text 6 KB", make_text(rng, 6 * 1024)),
-        ("synthetic firmware 12 KB", old_fw),
+        ("structured binary 12 KB", make_structured(rng, 12 * 1024)),
         ("random 1 KB", rng.randbytes(1024)),
+        ("sparse binary 9 KB", make_sparse(rng, 9 * 1024)),
     ]
     vectors: list[Vector] = []
 
@@ -173,20 +146,7 @@ def generate(tinyuz: Path, seed: int = 0x7475):
                     continue  # the encoder shrinks the dictionary to the input size anyway
                 code = tinyuz_compress(tinyuz, data, dict_size, literal_line)
                 tag = "ll" if literal_line else "noll"
-                vectors.append(Vector(f"cli/{name}/dict{dict_size}/{tag}", idx, code, dict_size, literal_line))
-
-    none_type, body = lite_body(hdiffpatch.diff_lite(old_fw, new_fw, compression="none"))
-    assert none_type == 0
-    inputs.append(("HPatchLite body (synthetic firmware diff)", body))
-    body_idx = len(inputs) - 1
-    for dict_size, literal_line in ((256, False), (4096, False), (4096, True)):
-        cfg = hdiffpatch.TuzConfig(dict_size=dict_size, literal_line=literal_line)
-        diff = hdiffpatch.diff_lite(old_fw, new_fw, compression=cfg)
-        assert hdiffpatch.apply_lite(old_fw, diff) == new_fw
-        compress_type, code = lite_body(diff)
-        assert compress_type == 1, compress_type  # hpi_compressType_tuz
-        tag = "ll" if literal_line else "noll"
-        vectors.append(Vector(f"hdiffpatch/diff_lite/dict{dict_size}/{tag}", body_idx, code, dict_size, literal_line))
+                vectors.append(Vector(f"{name}/dict{dict_size}/{tag}", idx, code, dict_size, literal_line))
 
     write_c(inputs, vectors)
     print(f"wrote {len(vectors)} vectors to {TEST_VECTORS_C.relative_to(REPO)}")

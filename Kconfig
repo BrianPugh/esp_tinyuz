@@ -5,14 +5,13 @@ menu "tinyuz decoder"
         default y
         help
             Literal lines store runs of incompressible bytes more compactly.
-            The encoder emits them with `tinyuz -c` or hdiffpatch's
-            TuzConfig(literal_line=True).
+            The upstream tinyuz CLI emits them with its default compressor
+            (`tinyuz -c`).
 
             Disabling this saves about 54 bytes of code, but the decoder can
             then only read streams encoded without literal lines
-            (`tinyuz -ci`, or TuzConfig(literal_line=False), hdiffpatch's
-            default). A literal-line code in the input is then reported as an
-            error.
+            (`tinyuz -ci`). A literal-line code in the input is then reported
+            as an error.
 
             This changes the layout of tuz_TStream, so it is exported to every
             component that includes tuz_dec.h.

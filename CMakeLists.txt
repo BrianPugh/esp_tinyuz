@@ -11,8 +11,8 @@ else()
     target_compile_definitions(${COMPONENT_LIB} PUBLIC "tuz_isNeedLiteralLine=0")
 endif()
 
-# Only tuz_dec.c reads _IS_RUN_MEM_SAFE_CHECK; keep it private because HDiffPatch/HPatchLite
-# use the same macro name for their own checks.
+# Only tuz_dec.c reads _IS_RUN_MEM_SAFE_CHECK. Keep it private: other libraries use the same
+# generic macro name for their own checks, so it must not leak into consuming components.
 if(CONFIG_TINYUZ_MEM_SAFE_CHECK)
     target_compile_definitions(${COMPONENT_LIB} PRIVATE "_IS_RUN_MEM_SAFE_CHECK=1")
 else()
